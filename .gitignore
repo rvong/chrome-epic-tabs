@@ -106,6 +106,7 @@ dist
 # Chrome Extension specific
 extension/styles/tailwind.css
 extension/styles/*.map
+extension/lib/
 *.zip
 *.crx
 *.pem

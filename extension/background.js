@@ -3,7 +3,7 @@
  * Handles tab capture, session management, and restoration
  */
 
-importScripts('db.js');
+importScripts('lib/dexie.js', 'db.js');
 
 // Initialize database on startup
 let dbReady = false;

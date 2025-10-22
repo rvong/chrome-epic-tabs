@@ -1,5 +1,5 @@
 /**
- * Jest Setup - Mock Chrome APIs and IndexedDB
+ * Jest Setup - Mock Chrome APIs, IndexedDB, and Dexie
  */
 
 // Mock Chrome APIs using jest-chrome
@@ -10,9 +10,21 @@ global.chrome = chrome;
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 
+// Import Dexie for testing
+import Dexie from 'dexie';
+global.Dexie = Dexie;
+
+// Configure Dexie to use fake-indexeddb
+Dexie.dependencies.indexedDB = global.indexedDB;
+Dexie.dependencies.IDBKeyRange = global.IDBKeyRange;
+
 // Reset IndexedDB for each test
 beforeEach(() => {
   global.indexedDB = new IDBFactory();
+  // Update Dexie to use the new IndexedDB instance
+  Dexie.dependencies.indexedDB = global.indexedDB;
+  Dexie.dependencies.IDBKeyRange = global.IDBKeyRange;
+
   chrome.runtime.sendMessage.mockClear();
   chrome.storage.sync.get.mockClear();
   chrome.storage.sync.set.mockClear();

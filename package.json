@@ -12,8 +12,11 @@
     "format:check": "prettier --check \"extension/**/*.{js,html,css}\"",
     "build:css": "npx tailwindcss -i ./src/styles/input.css -o ./extension/styles/tailwind.css --minify",
     "watch:css": "npx tailwindcss -i ./src/styles/input.css -o ./extension/styles/tailwind.css --watch",
-    "prebuild": "npm run lint && npm run test && npm run build:css",
-    "validate": "npm run lint && npm run format:check && npm run test"
+    "build:deps": "mkdir -p extension/lib && cp node_modules/dexie/dist/dexie.min.js extension/lib/dexie.js",
+    "build": "npm run build:deps && npm run build:css",
+    "prebuild": "npm run lint && npm run test && npm run build",
+    "validate": "npm run lint && npm run format:check && npm run test",
+    "postinstall": "npm run build:deps"
   },
   "keywords": [
     "chrome",
@@ -24,6 +27,9 @@
   ],
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "dexie": "^3.2.4"
+  },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@types/chrome": "^0.0.270",

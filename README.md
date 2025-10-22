@@ -238,7 +238,8 @@ zip -r ../epic-tabs-extension.zip . -x "*.map" "*.md"
 ## Technical Details
 
 ### Storage
-- **IndexedDB**: Used for efficient storage of large datasets
+- **Dexie.js**: Robust wrapper around IndexedDB for efficient storage
+- **IndexedDB**: Underlying database for storing hundreds of thousands of tabs
 - **Chrome Storage Sync**: Used for user preferences
 - **Unlimited Storage**: No practical limit on saved tabs
 
@@ -285,11 +286,12 @@ extension/
 
 ### Key Components
 
-**db.js**: IndexedDB wrapper providing:
-- Tab storage and retrieval
+**db.js**: Dexie.js-based database layer providing:
+- Tab storage and retrieval with efficient indexing
 - Session management
-- Search and filtering
+- Full-text search and filtering
 - Export/import functionality
+- Transactional operations for data integrity
 
 **background.js**: Service worker handling:
 - Tab capture
@@ -334,6 +336,10 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 See [LICENSE](LICENSE) file for details.
 
 ## Credits
+
+Built with:
+- [Dexie.js](https://dexie.org/) - Minimalistic wrapper for IndexedDB
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
 
 Inspired by:
 - [OneTab](https://www.one-tab.com/)

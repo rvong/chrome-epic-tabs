@@ -1,62 +1,41 @@
 /**
- * IndexedDB wrapper for efficient storage of hundreds of thousands of tabs
+ * Dexie.js wrapper for efficient storage of hundreds of thousands of tabs
+ * Using Dexie.js - a minimalistic wrapper for IndexedDB
  */
 
-const DB_NAME = 'EpicTabsDB';
-const DB_VERSION = 1;
+// Dexie will be loaded via importScripts in background.js
+// For Node/Jest environment, require it
+const Dexie = self.Dexie || (typeof require !== 'undefined' ? require('dexie') : null);
 
-class TabDatabase {
+class TabDatabase extends Dexie {
   constructor() {
-    this.db = null;
+    super('EpicTabsDB');
+
+    // Define database schema
+    this.version(1).stores({
+      tabs: '++id, url, title, sessionId, timestamp, domain, *tags',
+      sessions: '++id, name, timestamp, archived',
+      settings: 'key',
+    });
+
+    // Define table shortcuts
+    this.tabs = this.table('tabs');
+    this.sessions = this.table('sessions');
+    this.settings = this.table('settings');
   }
 
+  /**
+   * Initialize the database (for compatibility with old API)
+   */
   async init() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        this.db = request.result;
-        resolve(this.db);
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-
-        // Store for individual tabs
-        if (!db.objectStoreNames.contains('tabs')) {
-          const tabStore = db.createObjectStore('tabs', { keyPath: 'id', autoIncrement: true });
-          tabStore.createIndex('url', 'url', { unique: false });
-          tabStore.createIndex('title', 'title', { unique: false });
-          tabStore.createIndex('sessionId', 'sessionId', { unique: false });
-          tabStore.createIndex('timestamp', 'timestamp', { unique: false });
-          tabStore.createIndex('domain', 'domain', { unique: false });
-          tabStore.createIndex('tags', 'tags', { unique: false, multiEntry: true });
-        }
-
-        // Store for sessions/groups
-        if (!db.objectStoreNames.contains('sessions')) {
-          const sessionStore = db.createObjectStore('sessions', { keyPath: 'id', autoIncrement: true });
-          sessionStore.createIndex('name', 'name', { unique: false });
-          sessionStore.createIndex('timestamp', 'timestamp', { unique: false });
-          sessionStore.createIndex('archived', 'archived', { unique: false });
-        }
-
-        // Store for settings
-        if (!db.objectStoreNames.contains('settings')) {
-          db.createObjectStore('settings', { keyPath: 'key' });
-        }
-      };
-    });
+    await this.open();
+    return this;
   }
 
   /**
    * Save a single tab
    */
   async saveTab(tabData) {
-    const transaction = this.db.transaction(['tabs'], 'readwrite');
-    const store = transaction.objectStore('tabs');
-
     const tab = {
       url: tabData.url,
       title: tabData.title || 'Untitled',
@@ -65,44 +44,28 @@ class TabDatabase {
       timestamp: tabData.timestamp || Date.now(),
       domain: new URL(tabData.url).hostname,
       tags: tabData.tags || [],
-      metadata: tabData.metadata || {}
+      metadata: tabData.metadata || {},
     };
 
-    return new Promise((resolve, reject) => {
-      const request = store.add(tab);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    return await this.tabs.add(tab);
   }
 
   /**
    * Save multiple tabs at once (batch operation)
    */
   async saveTabs(tabsData) {
-    const transaction = this.db.transaction(['tabs'], 'readwrite');
-    const store = transaction.objectStore('tabs');
-    const ids = [];
+    const tabs = tabsData.map((tabData) => ({
+      url: tabData.url,
+      title: tabData.title || 'Untitled',
+      favIconUrl: tabData.favIconUrl || '',
+      sessionId: tabData.sessionId || null,
+      timestamp: tabData.timestamp || Date.now(),
+      domain: new URL(tabData.url).hostname,
+      tags: tabData.tags || [],
+      metadata: tabData.metadata || {},
+    }));
 
-    return new Promise((resolve, reject) => {
-      transaction.oncomplete = () => resolve(ids);
-      transaction.onerror = () => reject(transaction.error);
-
-      tabsData.forEach(tabData => {
-        const tab = {
-          url: tabData.url,
-          title: tabData.title || 'Untitled',
-          favIconUrl: tabData.favIconUrl || '',
-          sessionId: tabData.sessionId || null,
-          timestamp: tabData.timestamp || Date.now(),
-          domain: new URL(tabData.url).hostname,
-          tags: tabData.tags || [],
-          metadata: tabData.metadata || {}
-        };
-
-        const request = store.add(tab);
-        request.onsuccess = () => ids.push(request.result);
-      });
-    });
+    return await this.tabs.bulkAdd(tabs, { allKeys: true });
   }
 
   /**
@@ -118,377 +81,210 @@ class TabDatabase {
       limit = 100,
       offset = 0,
       sortBy = 'timestamp',
-      sortOrder = 'desc'
+      sortOrder = 'desc',
     } = options;
 
-    const transaction = this.db.transaction(['tabs'], 'readonly');
-    const store = transaction.objectStore('tabs');
-    let index;
-    let range;
+    let query = this.tabs;
 
-    // Select appropriate index based on filters
+    // Apply filters
     if (sessionId !== null) {
-      index = store.index('sessionId');
-      range = IDBKeyRange.only(sessionId);
+      query = query.where('sessionId').equals(sessionId);
     } else if (domain !== null) {
-      index = store.index('domain');
-      range = IDBKeyRange.only(domain);
+      query = query.where('domain').equals(domain);
     } else if (tag !== null) {
-      index = store.index('tags');
-      range = IDBKeyRange.only(tag);
+      query = query.where('tags').equals(tag);
     } else if (startDate !== null || endDate !== null) {
-      index = store.index('timestamp');
       if (startDate && endDate) {
-        range = IDBKeyRange.bound(startDate, endDate);
+        query = query.where('timestamp').between(startDate, endDate, true, true);
       } else if (startDate) {
-        range = IDBKeyRange.lowerBound(startDate);
+        query = query.where('timestamp').aboveOrEqual(startDate);
       } else {
-        range = IDBKeyRange.upperBound(endDate);
+        query = query.where('timestamp').belowOrEqual(endDate);
       }
     } else {
-      index = store.index(sortBy);
+      query = query.toCollection();
     }
 
-    return new Promise((resolve, reject) => {
-      const results = [];
-      const direction = sortOrder === 'desc' ? 'prev' : 'next';
-      const request = range ? index.openCursor(range, direction) : index.openCursor(null, direction);
-      let skipped = 0;
+    // Apply sorting
+    if (sortOrder === 'desc') {
+      query = query.reverse();
+    }
 
-      request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor && results.length < limit) {
-          if (skipped < offset) {
-            skipped++;
-            cursor.continue();
-          } else {
-            results.push(cursor.value);
-            cursor.continue();
-          }
-        } else {
-          resolve(results);
-        }
-      };
-
-      request.onerror = () => reject(request.error);
-    });
+    // Apply pagination
+    return await query.offset(offset).limit(limit).sortBy(sortBy);
   }
 
   /**
    * Search tabs by text (searches in title and URL)
    */
   async searchTabs(query, limit = 100) {
-    const transaction = this.db.transaction(['tabs'], 'readonly');
-    const store = transaction.objectStore('tabs');
+    const searchLower = query.toLowerCase();
 
-    return new Promise((resolve, reject) => {
-      const results = [];
-      const request = store.openCursor();
-      const searchLower = query.toLowerCase();
-
-      request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor && results.length < limit) {
-          const tab = cursor.value;
-          const titleMatch = tab.title.toLowerCase().includes(searchLower);
-          const urlMatch = tab.url.toLowerCase().includes(searchLower);
-
-          if (titleMatch || urlMatch) {
-            results.push(tab);
-          }
-          cursor.continue();
-        } else {
-          resolve(results);
-        }
-      };
-
-      request.onerror = () => reject(request.error);
-    });
+    return await this.tabs
+      .filter(
+        (tab) =>
+          tab.title.toLowerCase().includes(searchLower) ||
+          tab.url.toLowerCase().includes(searchLower)
+      )
+      .limit(limit)
+      .toArray();
   }
 
   /**
    * Delete a tab by ID
    */
   async deleteTab(tabId) {
-    const transaction = this.db.transaction(['tabs'], 'readwrite');
-    const store = transaction.objectStore('tabs');
-
-    return new Promise((resolve, reject) => {
-      const request = store.delete(tabId);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    await this.tabs.delete(tabId);
   }
 
   /**
    * Delete multiple tabs
    */
   async deleteTabs(tabIds) {
-    const transaction = this.db.transaction(['tabs'], 'readwrite');
-    const store = transaction.objectStore('tabs');
-
-    return new Promise((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-
-      tabIds.forEach(id => {
-        store.delete(id);
-      });
-    });
+    await this.tabs.bulkDelete(tabIds);
   }
 
   /**
    * Create a new session
    */
   async createSession(name, tabIds = []) {
-    const transaction = this.db.transaction(['sessions'], 'readwrite');
-    const store = transaction.objectStore('sessions');
-
     const session = {
       name: name || `Session ${new Date().toLocaleString()}`,
       timestamp: Date.now(),
       tabIds: tabIds,
       archived: false,
-      metadata: {}
+      metadata: {},
     };
 
-    return new Promise((resolve, reject) => {
-      const request = store.add(session);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    return await this.sessions.add(session);
   }
 
   /**
    * Get all sessions
    */
   async getSessions(includeArchived = false) {
-    const transaction = this.db.transaction(['sessions'], 'readonly');
-    const store = transaction.objectStore('sessions');
-    const index = store.index('timestamp');
+    let query = this.sessions;
 
-    return new Promise((resolve, reject) => {
-      const results = [];
-      const request = index.openCursor(null, 'prev');
+    if (!includeArchived) {
+      query = query.where('archived').equals(false);
+    }
 
-      request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor) {
-          if (includeArchived || !cursor.value.archived) {
-            results.push(cursor.value);
-          }
-          cursor.continue();
-        } else {
-          resolve(results);
-        }
-      };
-
-      request.onerror = () => reject(request.error);
-    });
+    return await query.reverse().sortBy('timestamp');
   }
 
   /**
    * Get a session by ID with its tabs
    */
   async getSessionWithTabs(sessionId) {
-    const transaction = this.db.transaction(['sessions', 'tabs'], 'readonly');
-    const sessionStore = transaction.objectStore('sessions');
-    const tabStore = transaction.objectStore('tabs');
-    const tabIndex = tabStore.index('sessionId');
+    const session = await this.sessions.get(sessionId);
 
-    return new Promise((resolve, reject) => {
-      const sessionRequest = sessionStore.get(sessionId);
+    if (!session) {
+      return null;
+    }
 
-      sessionRequest.onsuccess = () => {
-        const session = sessionRequest.result;
-        if (!session) {
-          resolve(null);
-          return;
-        }
+    // Get tabs for this session
+    const tabs = await this.tabs.where('sessionId').equals(sessionId).toArray();
 
-        const tabsRequest = tabIndex.getAll(sessionId);
-        tabsRequest.onsuccess = () => {
-          session.tabs = tabsRequest.result;
-          resolve(session);
-        };
-        tabsRequest.onerror = () => reject(tabsRequest.error);
-      };
-
-      sessionRequest.onerror = () => reject(sessionRequest.error);
-    });
+    session.tabs = tabs;
+    return session;
   }
 
   /**
    * Update a session
    */
   async updateSession(sessionId, updates) {
-    const transaction = this.db.transaction(['sessions'], 'readwrite');
-    const store = transaction.objectStore('sessions');
+    const session = await this.sessions.get(sessionId);
 
-    return new Promise((resolve, reject) => {
-      const getRequest = store.get(sessionId);
+    if (!session) {
+      throw new Error('Session not found');
+    }
 
-      getRequest.onsuccess = () => {
-        const session = getRequest.result;
-        if (!session) {
-          reject(new Error('Session not found'));
-          return;
-        }
+    Object.assign(session, updates);
+    await this.sessions.put(session);
 
-        Object.assign(session, updates);
-        const putRequest = store.put(session);
-        putRequest.onsuccess = () => resolve(session);
-        putRequest.onerror = () => reject(putRequest.error);
-      };
-
-      getRequest.onerror = () => reject(getRequest.error);
-    });
+    return session;
   }
 
   /**
    * Delete a session and optionally its tabs
    */
   async deleteSession(sessionId, deleteTabs = false) {
-    const stores = deleteTabs ? ['sessions', 'tabs'] : ['sessions'];
-    const transaction = this.db.transaction(stores, 'readwrite');
-    const sessionStore = transaction.objectStore('sessions');
+    if (deleteTabs) {
+      // Delete all tabs in this session
+      await this.tabs.where('sessionId').equals(sessionId).delete();
+    }
 
-    return new Promise((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-
-      if (deleteTabs) {
-        const tabStore = transaction.objectStore('tabs');
-        const tabIndex = tabStore.index('sessionId');
-        const tabRequest = tabIndex.openCursor(IDBKeyRange.only(sessionId));
-
-        tabRequest.onsuccess = (event) => {
-          const cursor = event.target.result;
-          if (cursor) {
-            cursor.delete();
-            cursor.continue();
-          }
-        };
-      }
-
-      sessionStore.delete(sessionId);
-    });
+    // Delete the session
+    await this.sessions.delete(sessionId);
   }
 
   /**
    * Get total count of tabs
    */
   async getTabCount() {
-    const transaction = this.db.transaction(['tabs'], 'readonly');
-    const store = transaction.objectStore('tabs');
-
-    return new Promise((resolve, reject) => {
-      const request = store.count();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    return await this.tabs.count();
   }
 
   /**
    * Get storage statistics
    */
   async getStats() {
-    const transaction = this.db.transaction(['tabs', 'sessions'], 'readonly');
-    const tabStore = transaction.objectStore('tabs');
-    const sessionStore = transaction.objectStore('sessions');
+    const [totalTabs, totalSessions] = await Promise.all([
+      this.tabs.count(),
+      this.sessions.count(),
+    ]);
 
-    return new Promise((resolve, reject) => {
-      const stats = {};
-
-      const tabCountRequest = tabStore.count();
-      tabCountRequest.onsuccess = () => {
-        stats.totalTabs = tabCountRequest.result;
-
-        const sessionCountRequest = sessionStore.count();
-        sessionCountRequest.onsuccess = () => {
-          stats.totalSessions = sessionCountRequest.result;
-          resolve(stats);
-        };
-        sessionCountRequest.onerror = () => reject(sessionCountRequest.error);
-      };
-      tabCountRequest.onerror = () => reject(tabCountRequest.error);
-    });
+    return {
+      totalTabs,
+      totalSessions,
+    };
   }
 
   /**
    * Export all data for backup
    */
   async exportData() {
-    const transaction = this.db.transaction(['tabs', 'sessions', 'settings'], 'readonly');
-    const data = {
-      tabs: [],
-      sessions: [],
-      settings: [],
+    const [tabs, sessions, settings] = await Promise.all([
+      this.tabs.toArray(),
+      this.sessions.toArray(),
+      this.settings.toArray(),
+    ]);
+
+    return {
+      tabs,
+      sessions,
+      settings,
       exportDate: new Date().toISOString(),
-      version: DB_VERSION
+      version: 1,
     };
-
-    return new Promise((resolve, reject) => {
-      const tabStore = transaction.objectStore('tabs');
-      const sessionStore = transaction.objectStore('sessions');
-      const settingsStore = transaction.objectStore('settings');
-
-      const tabRequest = tabStore.getAll();
-      tabRequest.onsuccess = () => {
-        data.tabs = tabRequest.result;
-
-        const sessionRequest = sessionStore.getAll();
-        sessionRequest.onsuccess = () => {
-          data.sessions = sessionRequest.result;
-
-          const settingsRequest = settingsStore.getAll();
-          settingsRequest.onsuccess = () => {
-            data.settings = settingsRequest.result;
-            resolve(data);
-          };
-          settingsRequest.onerror = () => reject(settingsRequest.error);
-        };
-        sessionRequest.onerror = () => reject(sessionRequest.error);
-      };
-      tabRequest.onerror = () => reject(tabRequest.error);
-    });
   }
 
   /**
    * Import data from backup
    */
   async importData(data) {
-    const transaction = this.db.transaction(['tabs', 'sessions', 'settings'], 'readwrite');
-
-    return new Promise((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-
-      const tabStore = transaction.objectStore('tabs');
-      const sessionStore = transaction.objectStore('sessions');
-      const settingsStore = transaction.objectStore('settings');
-
+    await this.transaction('rw', [this.tabs, this.sessions, this.settings], async () => {
       // Import tabs
-      if (data.tabs) {
-        data.tabs.forEach(tab => {
+      if (data.tabs && data.tabs.length > 0) {
+        const tabsToImport = data.tabs.map((tab) => {
           const { id, ...tabData } = tab; // Remove auto-generated ID
-          tabStore.add(tabData);
+          return tabData;
         });
+        await this.tabs.bulkAdd(tabsToImport);
       }
 
       // Import sessions
-      if (data.sessions) {
-        data.sessions.forEach(session => {
+      if (data.sessions && data.sessions.length > 0) {
+        const sessionsToImport = data.sessions.map((session) => {
           const { id, ...sessionData } = session;
-          sessionStore.add(sessionData);
+          return sessionData;
         });
+        await this.sessions.bulkAdd(sessionsToImport);
       }
 
       // Import settings
-      if (data.settings) {
-        data.settings.forEach(setting => {
-          settingsStore.put(setting);
-        });
+      if (data.settings && data.settings.length > 0) {
+        await this.settings.bulkPut(data.settings);
       }
     });
   }
@@ -497,14 +293,9 @@ class TabDatabase {
    * Clear all data
    */
   async clearAll() {
-    const transaction = this.db.transaction(['tabs', 'sessions'], 'readwrite');
-
-    return new Promise((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-
-      transaction.objectStore('tabs').clear();
-      transaction.objectStore('sessions').clear();
+    await this.transaction('rw', [this.tabs, this.sessions], async () => {
+      await this.tabs.clear();
+      await this.sessions.clear();
     });
   }
 }

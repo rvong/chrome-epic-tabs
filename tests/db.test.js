@@ -1,45 +1,37 @@
 /**
- * Unit tests for db.js - IndexedDB wrapper
+ * Unit tests for db.js - Dexie wrapper
  */
 
-import { describe, test, expect, beforeEach } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 
-// Mock module loading for browser environment
-let TabDatabase, db;
+// Import the TabDatabase class
+const { TabDatabase } = require('../extension/db.js');
+
+let db;
 
 beforeEach(async () => {
-  // Import the module code as text and evaluate it
-  const fs = require('fs');
-  const path = require('path');
-  const dbCode = fs.readFileSync(
-    path.join(__dirname, '../extension/db.js'),
-    'utf-8'
-  );
-
-  // Remove the export statement and evaluate
-  const codeWithoutExport = dbCode.replace(
-    /if \(typeof module.*\n.*\n\}/,
-    ''
-  );
-  eval(codeWithoutExport);
-
-  TabDatabase = global.TabDatabase;
   db = new TabDatabase();
-  await db.init();
+  await db.open();
+});
+
+afterEach(async () => {
+  if (db) {
+    await db.delete();
+    await db.close();
+  }
 });
 
 describe('TabDatabase Initialization', () => {
   test('should initialize database successfully', async () => {
-    expect(db.db).toBeDefined();
-    expect(db.db.name).toBe('EpicTabsDB');
-    expect(db.db.version).toBe(1);
+    expect(db).toBeDefined();
+    expect(db.name).toBe('EpicTabsDB');
+    expect(db.verno).toBe(1);
   });
 
-  test('should create required object stores', async () => {
-    const objectStoreNames = db.db.objectStoreNames;
-    expect(objectStoreNames.contains('tabs')).toBe(true);
-    expect(objectStoreNames.contains('sessions')).toBe(true);
-    expect(objectStoreNames.contains('settings')).toBe(true);
+  test('should create required tables', async () => {
+    expect(db.tabs).toBeDefined();
+    expect(db.sessions).toBeDefined();
+    expect(db.settings).toBeDefined();
   });
 });
 
