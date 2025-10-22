@@ -1,12 +1,23 @@
 {
-  "name": "Getting Started Example",
-  "description": "Build an Extension!",
-  "version": "1.0",
+  "name": "Epic Tabs",
+  "description": "Powerful tab and session manager. Save, organize, search and restore hundreds of thousands of tabs with ease.",
+  "version": "1.0.0",
   "manifest_version": 3,
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["tts", "tabs", "bookmarks", "history", "storage", "activeTab", "scripting"],
+  "permissions": [
+    "tabs",
+    "bookmarks",
+    "history",
+    "storage",
+    "unlimitedStorage",
+    "activeTab",
+    "scripting",
+    "tabGroups",
+    "notifications",
+    "contextMenus"
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

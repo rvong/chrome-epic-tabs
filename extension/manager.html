@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Epic Tabs Manager</title>
+  <link rel="stylesheet" href="manager.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <h1>Epic Tabs Manager</h1>
+        <div class="header-stats">
+          <div class="stat">
+            <span class="stat-value" id="totalTabs">0</span>
+            <span class="stat-label">Saved Tabs</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="totalSessions">0</span>
+            <span class="stat-label">Sessions</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <nav class="nav">
+          <button class="nav-item active" data-view="sessions">
+            <span class="icon">📁</span>
+            Sessions
+          </button>
+          <button class="nav-item" data-view="all-tabs">
+            <span class="icon">📑</span>
+            All Tabs
+          </button>
+          <button class="nav-item" data-view="search">
+            <span class="icon">🔍</span>
+            Search
+          </button>
+        </nav>
+
+        <div class="sidebar-actions">
+          <button id="exportBtn" class="sidebar-btn">
+            <span class="icon">📤</span>
+            Export Data
+          </button>
+          <button id="importBtn" class="sidebar-btn">
+            <span class="icon">📥</span>
+            Import Data
+          </button>
+        </div>
+      </aside>
+
+      <!-- Content Area -->
+      <main class="content">
+        <!-- Search Bar -->
+        <div class="search-bar">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search tabs by title or URL..."
+            class="search-input"
+          >
+          <button id="searchBtn" class="search-button">Search</button>
+        </div>
+
+        <!-- Sessions View -->
+        <div id="sessionsView" class="view active">
+          <div class="view-header">
+            <h2>Sessions</h2>
+            <button id="newSessionBtn" class="btn btn-primary">
+              <span class="icon">➕</span>
+              New Session
+            </button>
+          </div>
+          <div id="sessionsList" class="sessions-list">
+            <div class="loading">Loading sessions...</div>
+          </div>
+        </div>
+
+        <!-- All Tabs View -->
+        <div id="allTabsView" class="view">
+          <div class="view-header">
+            <h2>All Saved Tabs</h2>
+            <div class="view-controls">
+              <select id="sortBy" class="select">
+                <option value="timestamp-desc">Newest First</option>
+                <option value="timestamp-asc">Oldest First</option>
+                <option value="title-asc">Title A-Z</option>
+                <option value="title-desc">Title Z-A</option>
+                <option value="domain-asc">Domain A-Z</option>
+              </select>
+            </div>
+          </div>
+          <div id="allTabsList" class="tabs-list">
+            <div class="loading">Loading tabs...</div>
+          </div>
+          <div id="loadMoreContainer" class="load-more-container">
+            <button id="loadMoreBtn" class="btn">Load More</button>
+          </div>
+        </div>
+
+        <!-- Search View -->
+        <div id="searchView" class="view">
+          <div class="view-header">
+            <h2>Search Results</h2>
+          </div>
+          <div id="searchResults" class="tabs-list">
+            <div class="empty-state">
+              <span class="icon">🔍</span>
+              <p>Enter a search term to find tabs</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Session Detail Modal -->
+  <div id="sessionModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="sessionTitle">Session</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="session-actions">
+          <button id="restoreSessionBtn" class="btn btn-primary">
+            <span class="icon">↩️</span>
+            Restore All
+          </button>
+          <button id="restoreSessionNewWindowBtn" class="btn">
+            <span class="icon">🪟</span>
+            Restore in New Window
+          </button>
+          <button id="renameSessionBtn" class="btn">
+            <span class="icon">✏️</span>
+            Rename
+          </button>
+          <button id="deleteSessionBtn" class="btn btn-danger">
+            <span class="icon">🗑️</span>
+            Delete Session
+          </button>
+        </div>
+        <div id="sessionTabsList" class="tabs-list">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import File Input (hidden) -->
+  <input type="file" id="importFileInput" accept=".json" style="display: none">
+
+  <script src="manager.js"></script>
+</body>
+</html>
