@@ -102,3 +102,21 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Chrome Extension specific
+extension/styles/tailwind.css
+extension/styles/*.map
+*.zip
+*.crx
+*.pem
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

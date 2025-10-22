@@ -1,0 +1,62 @@
+{
+  "name": "epic-tabs",
+  "version": "1.0.0",
+  "description": "A powerful Chrome extension for managing, organizing, and restoring hundreds of thousands of browser tabs",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint extension/**/*.js",
+    "lint:fix": "eslint extension/**/*.js --fix",
+    "format": "prettier --write \"extension/**/*.{js,html,css}\"",
+    "format:check": "prettier --check \"extension/**/*.{js,html,css}\"",
+    "build:css": "npx tailwindcss -i ./src/styles/input.css -o ./extension/styles/tailwind.css --minify",
+    "watch:css": "npx tailwindcss -i ./src/styles/input.css -o ./extension/styles/tailwind.css --watch",
+    "prebuild": "npm run lint && npm run test && npm run build:css",
+    "validate": "npm run lint && npm run format:check && npm run test"
+  },
+  "keywords": [
+    "chrome",
+    "extension",
+    "tabs",
+    "session-manager",
+    "productivity"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/chrome": "^0.0.270",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jest": "^27.9.0",
+    "fake-indexeddb": "^5.0.2",
+    "jest": "^29.7.0",
+    "jest-chrome": "^0.8.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.2.5",
+    "tailwindcss": "^3.4.1"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup.js"
+    ],
+    "collectCoverageFrom": [
+      "extension/**/*.js",
+      "!extension/manager.js",
+      "!extension/popup.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      }
+    },
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/extension/$1"
+    }
+  }
+}

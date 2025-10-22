@@ -3,206 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <title>Epic Tabs</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      width: 320px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      padding: 16px;
-      background: #f5f5f5;
-    }
-
-    .header {
-      margin-bottom: 16px;
-    }
-
-    h1 {
-      font-size: 18px;
-      color: #333;
-      margin-bottom: 8px;
-    }
-
-    .stats {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
-      padding: 12px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    .stat {
-      flex: 1;
-      text-align: center;
-    }
-
-    .stat-value {
-      font-size: 24px;
-      font-weight: bold;
-      color: #3aa757;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .button-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    button {
-      padding: 12px 16px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: white;
-      color: #333;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
-
-    button:active {
-      transform: translateY(0);
-    }
-
-    button.primary {
-      background: #3aa757;
-      color: white;
-    }
-
-    button.secondary {
-      background: #4688f1;
-      color: white;
-    }
-
-    button.danger {
-      background: #e8453c;
-      color: white;
-    }
-
-    button .icon {
-      font-size: 16px;
-    }
-
-    .divider {
-      height: 1px;
-      background: #ddd;
-      margin: 12px 0;
-    }
-
-    .manager-link {
-      display: flex;
-      justify-content: center;
-      margin-top: 12px;
-    }
-
-    .manager-link a {
-      color: #3aa757;
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .manager-link a:hover {
-      text-decoration: underline;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 20px;
-      color: #666;
-    }
-
-    .checkbox-option {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px;
-      background: white;
-      border-radius: 6px;
-      margin-bottom: 8px;
-    }
-
-    .checkbox-option input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-    }
-
-    .checkbox-option label {
-      font-size: 13px;
-      color: #333;
-      cursor: pointer;
-      user-select: none;
-    }
-  </style>
+  <link rel="stylesheet" href="styles/tailwind.css">
 </head>
-<body>
-  <div class="header">
-    <h1>Epic Tabs</h1>
-  </div>
-
-  <div id="stats" class="stats">
-    <div class="stat">
-      <div class="stat-value" id="tabCount">-</div>
-      <div class="stat-label">Saved Tabs</div>
+<body class="w-80 bg-gray-50">
+  <div class="p-4">
+    <!-- Header -->
+    <div class="mb-4">
+      <h1 class="text-xl font-bold text-gray-800 mb-1">Epic Tabs</h1>
+      <p class="text-xs text-gray-500">Manage your tabs efficiently</p>
     </div>
-    <div class="stat">
-      <div class="stat-value" id="sessionCount">-</div>
-      <div class="stat-label">Sessions</div>
+
+    <!-- Stats -->
+    <div id="stats" class="grid grid-cols-2 gap-3 mb-4">
+      <div class="stat-card">
+        <div class="stat-value" id="tabCount">-</div>
+        <div class="stat-label">Saved Tabs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="sessionCount">-</div>
+        <div class="stat-label">Sessions</div>
+      </div>
     </div>
-  </div>
 
-  <div class="button-group">
-    <button id="saveCurrentTab" class="primary">
-      <span class="icon">💾</span>
-      Save Current Tab
-    </button>
+    <!-- Action Buttons -->
+    <div class="space-y-2 mb-4">
+      <button id="saveCurrentTab" class="btn btn-primary w-full justify-center">
+        <span>💾</span>
+        <span>Save Current Tab</span>
+      </button>
 
-    <button id="saveWindowTabs" class="secondary">
-      <span class="icon">🪟</span>
-      Save Window Tabs
-    </button>
+      <button id="saveWindowTabs" class="btn btn-secondary w-full justify-center">
+        <span>🪟</span>
+        <span>Save Window Tabs</span>
+      </button>
 
-    <button id="saveAllTabs" class="secondary">
-      <span class="icon">📚</span>
-      Save All Tabs
-    </button>
-  </div>
+      <button id="saveAllTabs" class="btn btn-secondary w-full justify-center">
+        <span>📚</span>
+        <span>Save All Tabs</span>
+      </button>
+    </div>
 
-  <div class="checkbox-option">
-    <input type="checkbox" id="closeAfterSave">
-    <label for="closeAfterSave">Close tabs after saving</label>
-  </div>
+    <!-- Options -->
+    <div class="bg-white rounded-lg p-3 mb-4 border border-gray-200">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          id="closeAfterSave"
+          class="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
+        >
+        <span class="text-sm text-gray-700">Close tabs after saving</span>
+      </label>
+    </div>
 
-  <div class="divider"></div>
+    <!-- Divider -->
+    <div class="border-t border-gray-200 my-4"></div>
 
-  <div class="button-group">
-    <button id="openManager">
-      <span class="icon">🗂️</span>
-      Open Tab Manager
+    <!-- Manager Button -->
+    <button id="openManager" class="btn btn-outline w-full justify-center">
+      <span>🗂️</span>
+      <span>Open Tab Manager</span>
     </button>
   </div>
 

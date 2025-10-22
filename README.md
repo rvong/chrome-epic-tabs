@@ -37,13 +37,156 @@ A powerful Chrome extension for managing, organizing, and restoring hundreds of 
 
 ### From Source
 1. Clone or download this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" (toggle in top right)
-4. Click "Load unpacked"
-5. Select the `extension` folder from this repository
+2. Install dependencies: `npm install`
+3. Build the CSS: `npm run build:css`
+4. Open Chrome and navigate to `chrome://extensions/`
+5. Enable "Developer mode" (toggle in top right)
+6. Click "Load unpacked"
+7. Select the `extension` folder from this repository
 
 ### From Chrome Web Store
 *(Not yet published)*
+
+## Development
+
+### Prerequisites
+- Node.js 18+ and npm
+- Chrome browser
+
+### Setup Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/chrome-epic-tabs.git
+cd chrome-epic-tabs
+
+# Install dependencies
+npm install
+
+# Build Tailwind CSS
+npm run build:css
+
+# Watch for CSS changes during development
+npm run watch:css
+```
+
+### Development Workflow
+
+```bash
+# Run linter
+npm run lint
+
+# Fix linting issues automatically
+npm run lint:fix
+
+# Format code with Prettier
+npm run format
+
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Validate everything (lint + format check + tests)
+npm run validate
+```
+
+### Project Structure
+
+```
+chrome-epic-tabs/
+├── .github/
+│   └── workflows/          # CI/CD workflows
+├── extension/              # Extension source code
+│   ├── db.js              # IndexedDB wrapper
+│   ├── background.js      # Service worker
+│   ├── popup.html/js      # Extension popup
+│   ├── manager.html/js    # Tab manager interface
+│   ├── styles/            # Generated CSS
+│   └── images/            # Icons and assets
+├── src/
+│   └── styles/            # Tailwind CSS source
+├── tests/                 # Unit tests
+│   ├── setup.js          # Test configuration
+│   ├── db.test.js        # Database tests
+│   └── background.test.js # Background worker tests
+├── package.json          # Dependencies and scripts
+├── tailwind.config.js    # Tailwind configuration
+├── .eslintrc.json        # ESLint configuration
+└── .prettierrc.json      # Prettier configuration
+```
+
+### Testing
+
+Epic Tabs uses **Jest** for unit testing with mocked Chrome APIs and IndexedDB:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode (useful during development)
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+Test files are located in the `tests/` directory and follow the naming convention `*.test.js`.
+
+### Code Quality
+
+The project uses:
+- **ESLint** for JavaScript linting
+- **Prettier** for code formatting
+- **Tailwind CSS** for styling
+- **GitHub Actions** for CI/CD
+
+Before committing code:
+
+```bash
+# Run validation checks
+npm run validate
+```
+
+### CSS Development
+
+The project uses Tailwind CSS. To modify styles:
+
+1. Edit `src/styles/input.css` for custom CSS
+2. Use Tailwind classes directly in HTML files
+3. Run `npm run build:css` to compile
+4. For live development, use `npm run watch:css`
+
+### Building for Production
+
+```bash
+# Run all checks and build CSS
+npm run prebuild
+
+# Create extension package
+cd extension
+zip -r ../epic-tabs-extension.zip . -x "*.map" "*.md"
+```
+
+### Loading Development Build in Chrome
+
+1. Build the CSS: `npm run build:css`
+2. Open Chrome and go to `chrome://extensions/`
+3. Enable "Developer mode"
+4. Click "Load unpacked"
+5. Select the `extension` folder
+6. The extension will reload automatically when you make changes
+
+### Debugging
+
+- **Background Service Worker**: Open `chrome://extensions/`, find Epic Tabs, click "service worker" link
+- **Popup**: Right-click popup → "Inspect"
+- **Manager Page**: Open Manager, right-click → "Inspect"
+- **Console Logs**: Check browser console and service worker console for debugging output
 
 ## Usage
 
