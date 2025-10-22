@@ -2,8 +2,7 @@
  * Unit tests for background.js - Service Worker
  */
 
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
-import chrome from 'jest-chrome';
+const { describe, test, expect, beforeEach } = require('@jest/globals');
 
 // Mock TabDatabase
 const mockDb = {

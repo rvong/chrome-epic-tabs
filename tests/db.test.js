@@ -2,7 +2,7 @@
  * Unit tests for db.js - Dexie wrapper
  */
 
-import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
+const { describe, test, expect, beforeEach, afterEach } = require('@jest/globals');
 
 // Import the TabDatabase class
 const { TabDatabase } = require('../extension/db.js');
@@ -15,9 +15,16 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  if (db) {
-    await db.delete();
+  if (db && db.isOpen()) {
     await db.close();
+  }
+  if (db) {
+    try {
+      await db.delete();
+    } catch (e) {
+      // Database might not exist
+    }
+    db = null;
   }
 });
 

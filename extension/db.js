@@ -84,34 +84,43 @@ class TabDatabase extends Dexie {
       sortOrder = 'desc',
     } = options;
 
-    let query = this.tabs;
+    let collection;
 
     // Apply filters
     if (sessionId !== null) {
-      query = query.where('sessionId').equals(sessionId);
+      collection = this.tabs.where('sessionId').equals(sessionId);
     } else if (domain !== null) {
-      query = query.where('domain').equals(domain);
+      collection = this.tabs.where('domain').equals(domain);
     } else if (tag !== null) {
-      query = query.where('tags').equals(tag);
+      collection = this.tabs.where('tags').equals(tag);
     } else if (startDate !== null || endDate !== null) {
       if (startDate && endDate) {
-        query = query.where('timestamp').between(startDate, endDate, true, true);
+        collection = this.tabs.where('timestamp').between(startDate, endDate, true, true);
       } else if (startDate) {
-        query = query.where('timestamp').aboveOrEqual(startDate);
+        collection = this.tabs.where('timestamp').aboveOrEqual(startDate);
       } else {
-        query = query.where('timestamp').belowOrEqual(endDate);
+        collection = this.tabs.where('timestamp').belowOrEqual(endDate);
       }
     } else {
-      query = query.toCollection();
+      collection = this.tabs.toCollection();
     }
 
-    // Apply sorting
-    if (sortOrder === 'desc') {
-      query = query.reverse();
-    }
+    // Get all matching tabs, then sort and paginate in JavaScript
+    const allTabs = await collection.toArray();
 
-    // Apply pagination
-    return await query.offset(offset).limit(limit).sortBy(sortBy);
+    // Sort
+    allTabs.sort((a, b) => {
+      const aVal = a[sortBy];
+      const bVal = b[sortBy];
+      if (sortOrder === 'desc') {
+        return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+      } else {
+        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+      }
+    });
+
+    // Paginate
+    return allTabs.slice(offset, offset + limit);
   }
 
   /**
@@ -163,13 +172,17 @@ class TabDatabase extends Dexie {
    * Get all sessions
    */
   async getSessions(includeArchived = false) {
-    let query = this.sessions;
+    let collection;
 
     if (!includeArchived) {
-      query = query.where('archived').equals(false);
+      collection = this.sessions.where('archived').equals(false);
+    } else {
+      collection = this.sessions.toCollection();
     }
 
-    return await query.reverse().sortBy('timestamp');
+    // Get all sessions and sort in JavaScript
+    const sessions = await collection.toArray();
+    return sessions.sort((a, b) => b.timestamp - a.timestamp);
   }
 
   /**
